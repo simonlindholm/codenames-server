@@ -36,6 +36,9 @@ let gridShown = true;
 let counts = [0,0,0,0];
 let engine = 'glove';
 let pickedCol = 'r';
+let lastClueStr = "";
+let minClueIndex = 0;
+let seenClues = new Set();
 
 let contEl = document.getElementById('cont');
 let optionsEl = elm(contEl, 'div');
@@ -46,6 +49,7 @@ let startingEl = elm(statusEl, 'span');
 txt(statusEl, ' ');
 let remainingEl = elm(statusEl, 'span');
 let colorsGridEl;
+let engineChoiceEl;
 
 function reset() {
 	counts = {
@@ -98,6 +102,7 @@ function reset() {
 	};
 	uiSetSelection('r');
 	setStarter('empty');
+	// (don't reset seenClues, repeated clues are boring anyway.)
 }
 
 function guessStarter() {
@@ -132,7 +137,7 @@ function updateStatus() {
 	else if (!c.b && c.r && t.b)
 		txt(remainingEl, "Blue wins!");
 	else if (t.r && t.b)
-		txt(remainingEl, "Remaining: " + c.r + "/" + c.b + "/" + c.c + "/" + c.a);
+		txt(remainingEl, "Remaining: " + c.r + " red, " + c.b + " blue, " + c.c + " neutral, " + c.a + " assassin");
 }
 
 function setStarter(start) {
@@ -186,16 +191,81 @@ function randomGrid() {
 	setStarter(start);
 }
 
+function restrictEngines() {
+	let forceConceptNet = false;
+	for (let c of cards) {
+		if (c.word.includes(" "))
+			forceConceptNet = true;
+	}
+
+	if (forceConceptNet) {
+		if (!engineChoiceEl.disabled) {
+			engineChoiceEl.disabled = true;
+			engineChoiceEl.title = "Forced conceptnet engine due to words with spaces.";
+			engineChoiceEl.selectedIndex = 1;
+			engine = 'conceptnet';
+		}
+	} else {
+		engineChoiceEl.disabled = false;
+		engineChoiceEl.title = "";
+	}
+}
+
 function randomWords() {
 	shuffle(wordlist);
 	let words = wordlist.slice(0, height*width);
 	for (let i = 0; i < height*width; i++) {
 		cards[i].wordEl.textContent = cards[i].word = words[i];
 	}
+	restrictEngines();
 }
 
 function giveClue(col) {
-	// TODO
+	let cas = [];
+	let c = {r: 0, b: 0, c: 0, a: 0};
+	let allCivilian = true;
+	for (let ca of cards) {
+		if (!ca.done && !ca.word) {
+			alert("Fill in all the words first.");
+			return;
+		}
+		if (!ca.done) {
+			cas.push(ca);
+			c[ca.color]++;
+		}
+		if (ca.color != 'c') allCivilian = false;
+	}
+	if (allCivilian) {
+		alert("Fill in the grid first.");
+		return;
+	}
+	if (!c[col]) {
+		alert("No remaining words to give clues for.");
+		return;
+	}
+
+	let clueStr = JSON.stringify({cas, engine, col});
+	if (clueStr != lastClueStr) {
+		minClueIndex = 0;
+		lastClueStr = clueStr;
+	}
+
+	apiCall(engine, col, cas, minClueIndex).then(result => {
+		if (result.status == 0) {
+			alert("Internal error: " + result.message);
+		} else if (result.status == 1) {
+			if (seenClues.has(result.word)) {
+				console.log("Already seen this clue, giving another...");
+				giveClue(col);
+			} else {
+				seenClues.add(result.word);
+				alert(result.word + " " + result.count);
+			}
+		} else {
+			alert("Error: " + result.message);
+		}
+	});
+	minClueIndex++;
 }
 
 let sizeChoice = elm(optionsEl, 'select');
@@ -222,15 +292,15 @@ var toggleGridBtn = elm(optionsEl, 'input', {type: 'button'});
 toggleGridBtn.onclick = toggleGrid;
 
 txt(optionsEl, ' | ');
-let engineChoice = elm(optionsEl, 'select');
-elm(engineChoice, 'option', {value: 'glove'}, "GloVe");
-elm(engineChoice, 'option', {value: 'conceptnet'}, "ConceptNet");
-engineChoice.selectedIndex = 0;
-engineChoice.onchange = function() { engine = this.value; };
+engineChoiceEl = elm(optionsEl, 'select', {id: "engine"});
+elm(engineChoiceEl, 'option', {value: 'glove'}, "GloVe");
+elm(engineChoiceEl, 'option', {value: 'conceptnet'}, "ConceptNet");
+engineChoiceEl.selectedIndex = 0;
+engineChoiceEl.onchange = function() { engine = this.value; };
 
 txt(optionsEl, ' ');
-elm(optionsEl, 'input', {type: 'button', value: "Red clue"}).onclick = giveClue.bind(null, 'r');
+elm(optionsEl, 'input', {type: 'button', value: "Red clue"}).onclick = () => giveClue('r');
 txt(optionsEl, ' ');
-elm(optionsEl, 'input', {type: 'button', value: "Blue clue"}).onclick = giveClue.bind(null, 'b');
+elm(optionsEl, 'input', {type: 'button', value: "Blue clue"}).onclick = () => giveClue('b');
 
 reset();
