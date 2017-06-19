@@ -30,54 +30,68 @@ function apiCall(engine, color, cards, index) {
 		.then(response => response.json());
 }
 
-let size = 5;
+let width = 5, height = 5;
 let cards = [];
 let gridShown = true;
 let counts = [0,0,0,0];
 let engine = 'glove';
-
-let cont = document.getElementById('cont');
-let optionsel = elm(cont, 'div');
-let board = elm(cont, 'div');
-let colors = elm(cont, 'div');
-let startingEl = elm(cont, 'div');
-let colorsGrid;
 let pickedCol = 'r';
+
+let contEl = document.getElementById('cont');
+let optionsEl = elm(contEl, 'div');
+let boardEl = elm(contEl, 'div');
+let colorsEl = elm(contEl, 'div');
+let statusEl = elm(contEl, 'div');
+let startingEl = elm(statusEl, 'span');
+txt(statusEl, ' ');
+let remainingEl = elm(statusEl, 'span');
+let colorsGridEl;
 
 function reset() {
 	counts = {
-		'3': [4,4,0,1],
-		'4': [6,5,4,1],
-		'5': [9,8,7,1],
-		'6': [12,11,12,1],
-		'7': [17,16,15,1],
-	}[size];
-	if (counts[0] + counts[1] + counts[2] + counts[3] != size*size)
+		'3x3': [4,4,0,1],
+		'4x4': [6,5,4,1],
+		'4x5': [8,7,4,1],
+		'5x5': [9,8,7,1],
+		'6x6': [12,11,12,1],
+		'7x7': [17,16,15,1],
+	}[height + 'x' + width];
+	if (counts[0] + counts[1] + counts[2] + counts[3] != width*height)
 		throw new Error("invalid counts...");
-	clearelm(board);
-	clearelm(colors);
-	txt(board, "No board set.");
+	clearelm(boardEl);
+	clearelm(colorsEl);
 
 	toggleGridBtn.value = "Hide grid";
 	gridShown = true;
-	colorsGrid = elm(colors, 'div');
-	let table = elm(colorsGrid, 'table', {id: "grid"});
+	colorsGridEl = elm(colorsEl, 'div');
+	let gridTable = elm(colorsGridEl, 'table', {id: "grid"});
+	let wordTable = elm(boardEl, 'table', {id: "words"});
+
 	cards = [];
-	for (let i = 0; i < size; i++) {
-		let row = table.insertRow(-1);
-		for (let j = 0; j < size; j++) {
-			let cell = row.insertCell(-1);
+	for (let i = 0; i < height; i++) {
+		let gridRow = gridTable.insertRow(-1);
+		let wordRow = wordTable.insertRow(-1);
+		for (let j = 0; j < width; j++) {
+			let gridCell = gridRow.insertCell(-1);
+			let wordCell = wordRow.insertCell(-1);
 			let r = i, c = j;
-			cell.onclick = () => {
+			let card = {color: '', word: '', wordEl: wordCell, gridEl: gridCell, done: false};
+			gridCell.onclick = () => {
 				setCellColor(r, c, pickedCol);
 				setStarter(guessStarter());
 			};
-			cards.push({color: '', word: '', colEl: cell});
+			wordCell.onclick = function() {
+				card.done = !card.done;
+				this.dataset.remaining = (card.done ? 'no' : 'yes');
+				updateStatus();
+			};
+			wordCell.dataset.remaining = 'yes';
+			cards.push(card);
 			setCellColor(i, j, 'c');
 		}
 	}
 
-	let picker = elm(colorsGrid, 'div', {id: "picker"});
+	let picker = elm(colorsGridEl, 'div', {id: "picker"});
 	for (let col of "rbca") {
 		let cell = elm(picker, 'span', {id: 'picker-' + col, class: 'col-' + col});
 		cell.onclick = uiSetSelection.bind(null, col);
@@ -96,9 +110,29 @@ function guessStarter() {
 		return 'b';
 	if (c.r == counts[0] && c.b == counts[1] && c.c == counts[2] && c.a == counts[3])
 		return 'r';
-	if (c.c == size*size)
+	if (c.c == height*width)
 		return 'empty';
 	return '';
+}
+
+function updateStatus() {
+	let c = {r: 0, b: 0, c: 0, a: 0};
+	let t = {r: 0, b: 0, c: 0, a: 0};
+	for (let ca of cards) {
+		if (!ca.done) c[ca.color]++;
+		t[ca.color]++;
+	}
+	clearelm(remainingEl);
+	if (c.a != t.a)
+		txt(remainingEl, "Assassin contacted!");
+	else if (!c.r && !c.b && t.b && t.r)
+		txt(remainingEl, "Tie! :O");
+	else if (!c.r && c.b && t.r)
+		txt(remainingEl, "Red wins!");
+	else if (!c.b && c.r && t.b)
+		txt(remainingEl, "Blue wins!");
+	else if (t.r && t.b)
+		txt(remainingEl, "Remaining: " + c.r + "/" + c.b + "/" + c.c + "/" + c.a);
 }
 
 function setStarter(start) {
@@ -109,11 +143,13 @@ function setStarter(start) {
 		txt(startingEl, (start == 'r' ? "Red" : "Blue") + " to start.");
 	else
 		txt(startingEl, "(non-standard grid)");
+	updateStatus();
 }
 
 function setCellColor(i, j, col) {
-	cards[i*size + j].color = col;
-	cards[i*size + j].colEl.className = 'col-' + col;
+	cards[i*width + j].color = col;
+	cards[i*width + j].gridEl.className = 'col-' + col;
+	cards[i*width + j].wordEl.className = 'col-' + col;
 }
 
 function uiSetSelection(col) {
@@ -123,8 +159,15 @@ function uiSetSelection(col) {
 
 function toggleGrid() {
 	gridShown = !gridShown;
-	colorsGrid.style.display = gridShown ? 'block' : 'none';
+	colorsGridEl.style.display = gridShown ? 'block' : 'none';
 	toggleGridBtn.value = gridShown ? "Hide grid" : "Show grid";
+}
+
+function shuffle(list) {
+	for (let i = 1; i < list.length; i++) {
+		let j = (Math.random() * (i+1)) | 0;
+		let t = list[j]; list[j] = list[i]; list[i] = t;
+	}
 }
 
 function randomGrid() {
@@ -132,14 +175,11 @@ function randomGrid() {
 	let nonstart = (start == 'r' ? 'b' : 'r');
 	let cols = start.repeat(counts[0]) + nonstart.repeat(counts[1]) + 'c'.repeat(counts[2]) + 'a'.repeat(counts[3]);
 	cols = cols.split('');
-	for (let i = 1; i < size*size; i++) {
-		let j = (Math.random() * (i+1)) | 0;
-		let t = cols[j]; cols[j] = cols[i]; cols[i] = t;
-	}
+	shuffle(cols);
 
 	let c = 0;
-	for (let i = 0; i < size; i++) {
-		for (let j = 0; j < size; j++) {
+	for (let i = 0; i < height; i++) {
+		for (let j = 0; j < width; j++) {
 			setCellColor(i, j, cols[c++]);
 		}
 	}
@@ -147,36 +187,50 @@ function randomGrid() {
 }
 
 function randomWords() {
+	shuffle(wordlist);
+	let words = wordlist.slice(0, height*width);
+	for (let i = 0; i < height*width; i++) {
+		cards[i].wordEl.textContent = cards[i].word = words[i];
+	}
 }
 
-txt(optionsel, "Size: ");
-let sizeChoice = elm(optionsel, 'select');
-for (let s = 3; s <= 7; s++)
+function giveClue(col) {
+	// TODO
+}
+
+let sizeChoice = elm(optionsEl, 'select');
+for (let s of '3x3,4x4,4x5,5x5,6x6,7x7'.split(','))
 	elm(sizeChoice, 'option', {'value': s}, s);
-sizeChoice.selectedIndex = 2;
+sizeChoice.selectedIndex = 3;
 sizeChoice.onchange = function() {
-	size = +this.value;
+	height = +this.value.split('x')[0];
+	width = +this.value.split('x')[1];
 	reset();
 };
 
-txt(optionsel, " Engine: ");
-let engineChoice = elm(optionsel, 'select');
+txt(optionsEl, ' ');
+elm(optionsEl, 'input', {type: 'button', value: "Reset"}).onclick = reset;
+
+txt(optionsEl, ' | ');
+elm(optionsEl, 'input', {type: 'button', value: "Random words"}).onclick = randomWords;
+
+txt(optionsEl, ' ');
+elm(optionsEl, 'input', {type: 'button', value: "Random grid"}).onclick = randomGrid;
+
+txt(optionsEl, ' ');
+var toggleGridBtn = elm(optionsEl, 'input', {type: 'button'});
+toggleGridBtn.onclick = toggleGrid;
+
+txt(optionsEl, ' | ');
+let engineChoice = elm(optionsEl, 'select');
 elm(engineChoice, 'option', {value: 'glove'}, "GloVe");
 elm(engineChoice, 'option', {value: 'conceptnet'}, "ConceptNet");
 engineChoice.selectedIndex = 0;
 engineChoice.onchange = function() { engine = this.value; };
 
-txt(optionsel, ' ');
-elm(optionsel, 'input', {type: 'button', value: "Reset"}).onclick = reset;
-
-txt(optionsel, ' | ');
-var toggleGridBtn = elm(optionsel, 'input', {type: 'button'});
-toggleGridBtn.onclick = toggleGrid;
-
-txt(optionsel, ' ');
-elm(optionsel, 'input', {type: 'button', value: "Random grid"}).onclick = randomGrid;
-
-txt(optionsel, ' ');
-elm(optionsel, 'input', {type: 'button', value: "Random words"}).onclick = randomWords;
+txt(optionsEl, ' ');
+elm(optionsEl, 'input', {type: 'button', value: "Red clue"}).onclick = giveClue.bind(null, 'r');
+txt(optionsEl, ' ');
+elm(optionsEl, 'input', {type: 'button', value: "Blue clue"}).onclick = giveClue.bind(null, 'b');
 
 reset();
