@@ -1,0 +1,42 @@
+#grid {
+	border-spacing: 0;
+	border-collapse: collapse;
+}
+#grid td {
+	border: 1px solid black;
+	width: 30px;
+	height: 30px;
+}
+
+#picker {
+	border-spacing: 10px;
+}
+
+#picker span {
+	display: inline-block;
+	border: 2px solid white;
+	width: 33px;
+	height: 33px;
+	border-radius: 20px;
+	margin: 2px;
+}
+
+[picked=r] #picker-r, [picked=b] #picker-b, [picked=c] #picker-c, [picked=a] #picker-a {
+	border-color: gold;
+}
+
+.col-r {
+	background-color: #e33;
+}
+
+.col-b {
+	background-color: #33e;
+}
+
+.col-c {
+	background-color: lightgray;
+}
+
+.col-a {
+	background-color: black;
+}
