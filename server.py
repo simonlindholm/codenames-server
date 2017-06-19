@@ -35,8 +35,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             raise JSONError("invalid index parameter")
 
     def do_GET(self):
-
-        # Construct a server response.
         path = urllib.parse.urlparse(self.path)
         if path.path == '/api/1':
             self.send_response(200)
@@ -49,19 +47,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"status": 0, "message": e.args[0]}).encode())
         else:
             return super().do_GET()
-            # try:
-            # f = open('./static/' + self.path)
-            # self.send_response(200)
-            # self.send_header('Content-type',    'text/html')
-            # self.end_headers()
-            # self.wfile.write(f.read())
-            # f.close()
-
-            # self.send_response(200)
-            # self.send_header("Content-Type", "text/html")
-            # self.send_header("Content-Length", "0")
-            # self.end_headers()
-            # self.wfile.write("<p>You accessed path: {}</p>".format(path.path).encode())
 
     def translate_path(self, path):
         ret = super().translate_path(path)
@@ -75,7 +60,4 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 print('Server listening on port 10000...')
 ThreadedHTTPServer.allow_reuse_address = True
 httpd = ThreadedHTTPServer(('', 10000), Handler)
-# httpd.allow_reuse_address = True # Prevent 'cannot bind to address' errors on restart
-# httpd.server_bind()     # Manually bind, to support allow_reuse_address
-# httpd.server_activate() # (see above comment)
 httpd.serve_forever()
