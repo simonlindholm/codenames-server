@@ -88,6 +88,7 @@ function reset() {
 				card.done = !card.done;
 				this.dataset.remaining = (card.done ? 'no' : 'yes');
 				updateStatus();
+				restrictEngines();
 			};
 			wordCell.dataset.remaining = 'yes';
 			cards.push(card);
@@ -102,6 +103,7 @@ function reset() {
 	};
 	uiSetSelection('r');
 	setStarter('empty');
+	restrictEngines();
 	// (don't reset seenClues, repeated clues are boring anyway.)
 }
 
@@ -194,7 +196,7 @@ function randomGrid() {
 function restrictEngines() {
 	let forceConceptNet = false;
 	for (let c of cards) {
-		if (c.word.includes(" "))
+		if (!c.done && c.word.includes(" "))
 			forceConceptNet = true;
 	}
 
