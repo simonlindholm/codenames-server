@@ -1,3 +1,4 @@
+"use strict";
 
 function elm(par, tag, attr = {}, text = "") {
 	let el = document.createElement(tag);
@@ -41,15 +42,13 @@ let minClueIndex = 0;
 let seenClues = new Set();
 let ownEngineChoice = 0;
 let playing = false;
+let starter = '';
 
 let contEl = document.getElementById('cont');
 let optionsEl = elm(contEl, 'div');
 let boardEl = elm(contEl, 'div');
 let colorsEl = elm(contEl, 'div');
-let statusEl = elm(contEl, 'div');
-let startingEl = elm(statusEl, 'span');
-txt(statusEl, ' ');
-let remainingEl = elm(statusEl, 'span');
+let statusEl = elm(contEl, 'div', {id: "status"});
 let cluesEl = elm(contEl, 'div');
 let colorsGridEl;
 let engineChoiceEl;
@@ -75,6 +74,7 @@ function reset() {
 	colorsGridEl = elm(colorsEl, 'div');
 	let gridTable = elm(colorsGridEl, 'table', {id: "grid"});
 	let wordTable = elm(boardEl, 'table', {id: "words"});
+	starter = '';
 
 	cards = [];
 	for (let i = 0; i < height; i++) {
@@ -89,7 +89,8 @@ function reset() {
 			let card = {color: '', word: '', inputEl, wordEl, gridEl, done: false};
 			gridEl.onclick = () => {
 				setCellColor(pos, pickedCol);
-				setStarter(guessStarter());
+				starter = guessStarter();
+				updateStatus();
 			};
 			wordEl.onclick = function() {
 				if (playing) {
@@ -116,8 +117,8 @@ function reset() {
 		cell.onclick = uiSetSelection.bind(null, col);
 	};
 	uiSetSelection('r');
-	setStarter('empty');
 	restrictEngines();
+	updateStatus();
 	// (don't reset seenClues, repeated clues are boring anyway.)
 }
 
@@ -131,40 +132,34 @@ function guessStarter() {
 		return 'b';
 	if (c.r == counts[0] && c.b == counts[1] && c.c == counts[2] && c.a == counts[3])
 		return 'r';
-	if (c.c == height*width)
-		return 'empty';
 	return '';
 }
 
 function updateStatus() {
 	let c = {r: 0, b: 0, c: 0, a: 0};
 	let t = {r: 0, b: 0, c: 0, a: 0};
+	let inProgress = false;
 	for (let ca of cards) {
 		if (!ca.done) c[ca.color]++;
+		else inProgress = true;
 		t[ca.color]++;
 	}
-	clearelm(remainingEl);
+	clearelm(statusEl);
+	let msg = ' ', msg2 = ' ';
 	if (c.a != t.a)
-		txt(remainingEl, "Assassin contacted!");
+		msg = "Assassin contacted!";
 	else if (!c.r && !c.b && t.b && t.r)
-		txt(remainingEl, "Tie! :O");
+		msg = "Tie! :O";
 	else if (!c.r && c.b && t.r)
-		txt(remainingEl, "Red wins!");
+		msg = "Red wins!";
 	else if (!c.b && c.r && t.b)
-		txt(remainingEl, "Blue wins!");
-	else if (t.r && t.b)
-		txt(remainingEl, "Remaining: " + c.r + " red, " + c.b + " blue, " + c.c + " neutral, " + c.a + " assassin");
-}
-
-function setStarter(start) {
-	clearelm(startingEl);
-	if (start == 'empty')
-		txt(startingEl, "(empty grid)");
-	else if (start)
-		txt(startingEl, (start == 'r' ? "Red" : "Blue") + " to start.");
+		msg = "Blue wins!";
 	else
-		txt(startingEl, "(non-standard grid)");
-	updateStatus();
+		msg = "Remaining: " + c.r + " red, " + c.b + " blue, " + c.c + " neutral, " + c.a + " assassin";
+	if (starter && !inProgress)
+		msg2 = (starter == 'r' ? "Red" : "Blue") + " to start.";
+	elm(statusEl, 'div', {}, msg);
+	elm(statusEl, 'div', {}, msg2);
 }
 
 function setCellColor(pos, col) {
@@ -231,7 +226,8 @@ function randomGrid() {
 	for (let i = 0; i < width*height; i++) {
 		setCellColor(i, cols[i]);
 	}
-	setStarter(start);
+	starter = start;
+	updateStatus();
 }
 
 function restrictEngines() {

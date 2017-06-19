@@ -13,6 +13,10 @@ input[type=button], select {
 	display: none;
 }
 
+#status {
+	white-space: pre;
+}
+
 #toggle-grid-btn {
 	padding-left: 3px;
 	padding-right: 3px;
