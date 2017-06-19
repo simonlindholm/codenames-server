@@ -47,6 +47,10 @@
 	cursor: help;
 }
 
+.clue a {
+	color: green;
+}
+
 [picked=r] #picker-r, [picked=b] #picker-b, [picked=c] #picker-c, [picked=a] #picker-a {
 	border-color: gold;
 }
@@ -69,4 +73,12 @@
 .col-a {
 	background-color: black;
 	color: white;
+}
+
+.clue-r {
+	color: red;
+}
+
+.clue-b {
+	color: blue;
 }

@@ -48,6 +48,7 @@ let statusEl = elm(contEl, 'div');
 let startingEl = elm(statusEl, 'span');
 txt(statusEl, ' ');
 let remainingEl = elm(statusEl, 'span');
+let cluesEl = elm(contEl, 'div');
 let colorsGridEl;
 let engineChoiceEl;
 
@@ -64,6 +65,7 @@ function reset() {
 		throw new Error("invalid counts...");
 	clearelm(boardEl);
 	clearelm(colorsEl);
+	clearelm(cluesEl);
 
 	toggleGridBtn.value = "Hide grid";
 	gridShown = true;
@@ -222,6 +224,26 @@ function randomWords() {
 	restrictEngines();
 }
 
+function showClue(col, clue) {
+	let el = elm(cluesEl, 'div', {class: "clue clue-" + col});
+	txt(elm(el, 'span'), clue.word + " " + clue.count);
+	txt(el, ' ');
+	let link = elm(el, 'a', {href: "#"});
+	txt(link, "(explain?)");
+	link.onclick = function(ev) {
+		ev.preventDefault();
+		ev.stopPropagation();
+		let col2str = col => {
+			if (col == 'r') return "(red)";
+			if (col == 'b') return "(blue)";
+			if (col == 'c') return "(civilian)";
+			if (col == 'a') return "(assassin)";
+		};
+		alert(clue.why.map(w => w.score + ": " + w.word + " " + col2str(w.type)).join("\n"));
+	};
+	alert(clue.word + " " + clue.count);
+}
+
 function giveClue(col) {
 	let cas = [];
 	let c = {r: 0, b: 0, c: 0, a: 0};
@@ -261,7 +283,7 @@ function giveClue(col) {
 				giveClue(col);
 			} else {
 				seenClues.add(result.word);
-				alert(result.word + " " + result.count);
+				showClue(col, result);
 			}
 		} else {
 			alert("Error: " + result.message);
