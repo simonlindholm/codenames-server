@@ -83,8 +83,8 @@ function reset() {
 		for (let j = 0; j < width; j++) {
 			let gridEl = gridRow.insertCell(-1);
 			let wordEl = wordRow.insertCell(-1);
-			elm(wordEl, 'span', {class: "word-display"});
-			let inputEl = elm(wordEl, 'input', {class: "word-input"});
+			elm(wordEl, 'span', {class: 'word-display'});
+			let inputEl = elm(wordEl, 'input', {class: 'word-input', type: 'text'});
 			let pos = i*width + j;
 			let card = {color: '', word: '', inputEl, wordEl, gridEl, done: false};
 			gridEl.onclick = () => {
@@ -382,5 +382,21 @@ txt(playOptionsEl, ' ');
 elm(playOptionsEl, 'input', {type: 'button', value: "Red clue"}).onclick = giveClue.bind(null, 'r');
 txt(playOptionsEl, ' ');
 elm(playOptionsEl, 'input', {type: 'button', value: "Blue clue"}).onclick = giveClue.bind(null, 'b');
+
+document.addEventListener('keydown', function(ev) {
+	if (ev.keyCode == 13) {
+		let el = document.activeElement;
+		if (el && el.type == 'text') {
+			for (let i = 0; i < width*height; i++) {
+				if (cards[i].inputEl == el) {
+					cards[(i+1) % (width*height)].inputEl.focus();
+					ev.preventDefault();
+					ev.stopPropagation();
+					return;
+				}
+			}
+		}
+	}
+}, true);
 
 reset();
