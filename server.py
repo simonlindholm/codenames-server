@@ -11,20 +11,21 @@ class JSONError(Exception):
 
 class Handler(http.server.SimpleHTTPRequestHandler):
 
-    def handleAPI(self, params):
+    def handleClueAPI(self, params):
         try:
             engine = params['engine'][0]
             color = params['color'][0]
             colors = params['colors'][0]
             words = params['words'][0].replace(' ', '_').split(',')
             index = int(params['index'][0])
+            count = int(params['count'][0])
             if len(colors) != len(words):
                 raise JSONError("colors and words have different lengths")
             if color not in "rb" or any(col not in "rbca" for col in colors):
                 raise JSONError("invalid colors")
             inp = engine + ' ' + color + '\n'
             inp += '\n'.join(c + ' ' + w for (c, w) in zip(colors, words)) + '\n'
-            inp += 'go ' + str(index) + '\n'
+            inp += 'go ' + str(index) + ' ' + str(count) + '\n'
 
             proc = Popen(['./codenames', '--batch'], stdin=PIPE, stdout=PIPE, cwd='./Codenames')
             outp = proc.communicate(inp.encode())[0]
@@ -32,17 +33,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         except KeyError as e:
             raise JSONError("missing parameter: {}".format(e.args[0]))
         except ValueError:
-            raise JSONError("invalid index parameter")
+            raise JSONError("cannot parse numeric parameter")
 
     def do_GET(self):
         path = urllib.parse.urlparse(self.path)
-        if path.path == '/api/1':
+        if path.path == '/api/1/clue':
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             try:
-                self.handleAPI(urllib.parse.parse_qs(path.query))
+                self.handleClueAPI(urllib.parse.parse_qs(path.query))
             except JSONError as e:
                 self.wfile.write(json.dumps({"status": 0, "message": e.args[0]}).encode())
         else:

@@ -23,11 +23,12 @@ function clearelm(el) {
 function apiCall(engine, color, cards, index) {
 	let colors = cards.map(x => x.color);
 	let words = cards.map(x => x.word);
-	return fetch("api/1?engine=" + engine +
+	return fetch("api/1/clue?engine=" + engine +
 			"&color=" + color +
 			"&colors=" + colors.join('') +
 			"&words=" + encodeURIComponent(words.join(',')) +
-			"&index=" + index)
+			"&index=" + index +
+			"&count=1")
 		.then(response => response.json());
 }
 
@@ -313,19 +314,20 @@ function giveClue(col) {
 		lastClueStr = clueStr;
 	}
 
-	apiCall(engine, col, cas, minClueIndex).then(result => {
-		if (result.status == 0) {
-			alert("Internal error: " + result.message);
-		} else if (result.status == 1) {
-			if (seenClues.has(result.word)) {
+	apiCall(engine, col, cas, minClueIndex).then(resp => {
+		if (resp.status == 0) {
+			alert("Internal error: " + resp.message);
+		} else if (resp.status == 1) {
+			let clue = resp.result[0];
+			if (seenClues.has(clue.word)) {
 				console.log("Already seen this clue, giving another...");
 				giveClue(col);
 			} else {
-				seenClues.add(result.word);
-				showClue(col, result);
+				seenClues.add(clue.word);
+				showClue(col, clue);
 			}
 		} else {
-			alert("Error: " + result.message);
+			alert("Error: " + resp.message);
 		}
 	});
 	minClueIndex++;
