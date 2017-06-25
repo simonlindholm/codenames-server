@@ -1,9 +1,19 @@
 from flask import *
 # from flask_compress import Compress
 from subprocess import Popen, PIPE
+import os
 import json
+import uuid
+import recognizer.board
+from recognizer.board import find_words
+
+UPLOAD_FOLDER = '/tmp/codenames-upload'
+if not os.path.isdir(UPLOAD_FOLDER):
+    os.mkdir(UPLOAD_FOLDER)
+    os.chmod(UPLOAD_FOLDER, 0o777)
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 class ApiError(Exception):
 
@@ -21,16 +31,18 @@ class ApiError(Exception):
 
 @app.errorhandler(ApiError)
 def handle_api_error(error):
-    response = jsonify(error.to_dict())
-    response.status_code = error.status_code
-    return response
+    resp = jsonify(error.to_dict())
+    resp.status_code = error.status_code
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
+
+def arg(id, default=None, type=None):
+    if not id in request.values:
+        raise ApiError("Missing parameter " + str(id))
+    return request.values.get(id, default=default, type=type)
 
 @app.route("/api/1/clue")
 def clueAPI():
-    def arg(id, default=None, type=None):
-        if not id in request.args:
-            raise ApiError("Missing parameter " + str(id))
-        return request.args.get(id, default=default, type=type)
     engine = arg('engine')
     color = arg('color')
     colors = arg('colors')
@@ -46,12 +58,34 @@ def clueAPI():
     inp += '\n'.join(c + ' ' + w for (c, w) in zip(colors, words)) + '\n'
     inp += 'go ' + str(index) + ' ' + str(count) + '\n'
 
-    proc = Popen(['./codenames', '--batch'], stdin=PIPE, stdout=PIPE, cwd='./Codenames')
+    proc = Popen(['./codenames', '--batch'], stdin=PIPE, stdout=PIPE, cwd='./bot')
     outp = proc.communicate(inp.encode())[0]
 
     resp = Response(outp)
     resp.headers['Access-Control-Allow-Origin'] = '*'
     resp.headers['Content-type'] = 'application/json'
+    return resp
+
+@app.route("/api/1/ocr-board", methods=['POST'])
+def ocrAPI():
+    size = arg('size')
+    if size != '5x5':
+        raise ApiError("Only size 5x5 supported right now")
+    print(request.files)
+    if not 'file' in request.files:
+        raise ApiError("Missing parameter file")
+    file = request.files['file']
+    if not file.filename.endswith('.jpg') and not file.filename.endswith('.jpeg'):
+        raise ApiError("File must have a .jpg extension")
+
+    tmpname = str(uuid.uuid4()) + '.jpg'
+    fname = os.path.join(app.config['UPLOAD_FOLDER'], tmpname)
+    file.save(fname)
+
+    words, grid = recognizer.board.find_words(fname, removeFile=True)
+
+    resp = jsonify({'status': 1, 'message': "Success.", 'grid': grid})
+    resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
 @app.route("/<path:path>")
