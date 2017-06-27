@@ -29,27 +29,24 @@ function reduceFileSize(file, acceptFileSize, maxWidth, maxHeight, quality) {
 		let im = new Image();
 		im.onerror = () => resolve(file);
 		im.onload = () => {
-			let w = im.width, h = im.height;
-			if (w > maxWidth) {
-				h *= maxWidth / w;
-				w = maxWidth;
-			}
-			if (h > maxHeight) {
-				w *= maxHeight / h;
-				h = maxHeight;
-			}
-			w = Math.round(w);
-			h = Math.round(h);
+			getExifOrientation(file).then(orientation => {
+				if (orientation > 4) {
+					let t = maxWidth;
+					maxWidth = maxHeight;
+					maxHeight = t;
+				}
 
-			let canvas = document.createElement('canvas');
-			canvas.width = w;
-			canvas.height = h;
-			var ctx = canvas.getContext('2d');
-			ctx.drawImage(im, 0, 0, w, h);
-			canvas.toBlob(blob => {
-				console.log("Resized image to " + w + "x" + h + ", " + (blob.size >> 10) + "kB");
-				resolve(blob);
-			}, 'image/jpeg', quality);
+				let w = im.width, h = im.height;
+				let scale = Math.min(maxWidth / w, maxHeight / h, 1);
+				h = Math.round(h * scale);
+				w = Math.round(w * scale);
+
+				let canvas = imgToCanvasWithOrientation(im, w, h, orientation);
+				canvas.toBlob(blob => {
+					console.log("Resized image to " + w + "x" + h + ", " + (blob.size >> 10) + "kB");
+					resolve(blob);
+				}, 'image/jpeg', quality);
+			});
 		};
 		im.src = URL.createObjectURL(file);
 	});
