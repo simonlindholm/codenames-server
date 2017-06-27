@@ -20,7 +20,7 @@ function clearelm(el) {
 	el.textContent = '';
 }
 
-function apiCall(engine, color, cards, index) {
+function apiClue(engine, color, cards, index) {
 	let colors = cards.map(x => x.color);
 	let words = cards.map(x => x.word);
 	return fetch("api/1/clue?engine=" + engine +
@@ -30,6 +30,22 @@ function apiCall(engine, color, cards, index) {
 			"&index=" + index +
 			"&count=1")
 		.then(response => response.json());
+}
+
+function apiScanWords() {
+	return fetch('/api/1/ocr-board', {
+		method: 'POST',
+		body: new FormData(boardFormEl)
+	})
+	.then(response => response.json());
+}
+
+function apiScanGrid() {
+	return fetch('/api/1/ocr-grid', {
+		method: 'POST',
+		body: new FormData(gridFormEl)
+	})
+	.then(response => response.json());
 }
 
 let width = 5, height = 5;
@@ -51,6 +67,10 @@ let boardEl = elm(contEl, 'div');
 let colorsEl = elm(contEl, 'div');
 let statusEl = elm(contEl, 'div', {id: "status"});
 let cluesEl = elm(contEl, 'div');
+let boardFormEl = document.getElementById("ocr-board-form");
+let boardFileEl = boardFormEl.file;
+let gridFormEl = document.getElementById("ocr-grid-form");
+let gridFileEl = gridFormEl.file;
 let colorsGridEl;
 let engineChoiceEl;
 
@@ -260,7 +280,7 @@ function setWord(pos, w, context) {
 	if (context != 'input')
 		c.inputEl.value = w;
 	c.wordEl.firstChild.textContent = w;
-	if (context != 'randomize')
+	if (context != 'delay-restrict')
 		restrictEngines();
 }
 
@@ -268,10 +288,9 @@ function randomWords() {
 	shuffle(wordlist);
 	let words = wordlist.slice(0, height*width);
 	for (let i = 0; i < width*height; i++) {
-		setWord(i, words[i], 'randomize');
+		setWord(i, words[i], 'delay-restrict');
 	}
 	restrictEngines();
-	selectMode(false);
 }
 
 function showClue(col, clue) {
@@ -316,7 +335,7 @@ function giveClue(col) {
 		lastClueStr = clueStr;
 	}
 
-	apiCall(engine, col, cas, minClueIndex).then(resp => {
+	apiClue(engine, col, cas, minClueIndex).then(resp => {
 		if (resp.status == 0) {
 			alert("Internal error: " + resp.message);
 		} else if (resp.status == 1) {
@@ -331,21 +350,68 @@ function giveClue(col) {
 		} else {
 			alert("Error: " + resp.message);
 		}
+	}).catch(err => {
+		alert("Error: " + err);
 	});
 	minClueIndex++;
 }
 
+function scanWords() {
+	apiScanWords().then(resp => {
+		if (height != 5 || width != 5) {
+			alert("Error: Only 5x5 grids can be scanned.");
+		} else if (resp.status == 0) {
+			alert("Internal error: " + resp.message);
+		} else if (resp.status == 1) {
+			let grid = resp.grid;
+			for (let i = 0; i < height; i++) {
+				for (let j = 0; j < width; j++)
+					setWord(i * width + j, grid[i][j], 'delay-restrict');
+			}
+			restrictEngines();
+		} else {
+			alert("Error: " + resp.message);
+		}
+	}).catch(err => {
+		alert("Error: " + err);
+	});
+}
+
+function scanGrid() {
+	apiScanGrid().then(resp => {
+		if (height != 5 || width != 5) {
+			alert("Error: Only 5x5 grids can be scanned.");
+		} else if (resp.status == 0) {
+			alert("Internal error: " + resp.message);
+		} else if (resp.status == 1) {
+			let grid = resp.grid;
+			for (let i = 0; i < height; i++) {
+				for (let j = 0; j < width; j++)
+					setCellColor(i * width + j, grid[i][j]);
+			}
+			starter = guessStarter();
+			updateStatus();
+		} else {
+			alert("Error: " + resp.message);
+		}
+	}).catch(err => {
+		alert("Error: " + err);
+	});
+}
+
 // Options UI:
-// 5x5 Reset | Hide grid, Random grid, Random words, Start, OR:
+// 5x5 Reset | Hide grid, Random grid, Scan grid, Random words, Scan words, Start, OR:
 // 5x5 Reset | Hide grid, Edit | GloVe, Red clue, Blue clue
 
 let sizeChoice = elm(optionsEl, 'select');
 for (let s of '3x3,4x4,4x5,5x5,6x6,7x7'.split(','))
 	elm(sizeChoice, 'option', {'value': s}, s);
 sizeChoice.selectedIndex = 3;
+contEl.dataset.size = '5x5';
 sizeChoice.onchange = function() {
 	height = +this.value.split('x')[0];
 	width = +this.value.split('x')[1];
+	contEl.dataset.size = this.value;
 	reset();
 };
 
@@ -362,7 +428,13 @@ let editOptionsEl = elm(optionsEl, 'span', {id: 'edit-options'});
 elm(editOptionsEl, 'input', {type: 'button', value: "Random grid"}).onclick = randomGrid;
 
 txt(editOptionsEl, ' ');
+elm(editOptionsEl, 'input', {type: 'button', value: "Scan grid", id: 'scan-grid-btn'}).onclick = () => gridFileEl.click();
+
+txt(editOptionsEl, ' ');
 elm(editOptionsEl, 'input', {type: 'button', value: "Random words"}).onclick = randomWords;
+
+txt(editOptionsEl, ' ');
+elm(editOptionsEl, 'input', {type: 'button', value: "Scan words", id: 'scan-words-btn'}).onclick = () => boardFileEl.click();
 
 txt(editOptionsEl, ' ');
 elm(editOptionsEl, 'input', {type: 'button', value: "Start"}).onclick = uiStartPlaying;
@@ -402,5 +474,8 @@ document.addEventListener('keydown', function(ev) {
 		}
 	}
 }, true);
+
+boardFileEl.onchange = scanWords;
+gridFileEl.onchange = scanGrid;
 
 reset();

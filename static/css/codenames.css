@@ -127,3 +127,14 @@ input[type=button], select {
 .clue-b {
 	color: blue;
 }
+
+#ocr-grid-form, #ocr-board-form {
+	display: none;
+}
+
+#scan-words-btn, #scan-grid-btn {
+	display: none;
+}
+[data-size="5x5"] #scan-words-btn, [data-size="5x5"] #scan-grid-btn {
+	display: inline;
+}
