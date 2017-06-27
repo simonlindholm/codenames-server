@@ -159,6 +159,8 @@ function updateStatus() {
 		msg = "Remaining: " + c.r + " red, " + c.b + " blue, " + c.c + " neutral, " + c.a + " assassin";
 	if (starter && !inProgress)
 		msg2 = (starter == 'r' ? "Red" : "Blue") + " to start.";
+	else if (!starter && !playing)
+		msg2 = (c.c != width*height ? "(non-standard grid)" : "(no grid set)");
 	elm(statusEl, 'div', {}, msg);
 	elm(statusEl, 'div', {}, msg2);
 }
