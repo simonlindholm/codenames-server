@@ -20,6 +20,41 @@ function clearelm(el) {
 	el.textContent = '';
 }
 
+function reduceFileSize(file, acceptFileSize, maxWidth, maxHeight, quality) {
+	if (HTMLCanvasElement.prototype.toBlob.polyfilled) acceptFileSize *= 2;
+	if (file.size <= acceptFileSize) {
+		return Promise.resolve(file);
+	}
+	return new Promise(resolve => {
+		let im = new Image();
+		im.onerror = () => resolve(file);
+		im.onload = () => {
+			let w = im.width, h = im.height;
+			if (w > maxWidth) {
+				h *= maxWidth / w;
+				w = maxWidth;
+			}
+			if (h > maxHeight) {
+				w *= maxHeight / h;
+				h = maxHeight;
+			}
+			w = Math.round(w);
+			h = Math.round(h);
+
+			let canvas = document.createElement('canvas');
+			canvas.width = w;
+			canvas.height = h;
+			var ctx = canvas.getContext('2d');
+			ctx.drawImage(im, 0, 0, w, h);
+			canvas.toBlob(blob => {
+				console.log("Resized image to " + w + "x" + h + ", " + (blob.size >> 10) + "kB");
+				resolve(blob);
+			}, 'image/jpeg', quality);
+		};
+		im.src = URL.createObjectURL(file);
+	});
+}
+
 function apiClue(engine, color, cards, index) {
 	let colors = cards.map(x => x.color);
 	let words = cards.map(x => x.word);
@@ -32,20 +67,20 @@ function apiClue(engine, color, cards, index) {
 		.then(response => response.json());
 }
 
-function apiScanWords() {
-	return fetch('api/1/ocr-board', {
-		method: 'POST',
-		body: new FormData(boardFormEl)
-	})
-	.then(response => response.json());
+function apiScanWords(blob) {
+	let fd = new FormData();
+	fd.set('size', '5x5');
+	fd.set('file', blob, blob.name || "file.jpg");
+	return fetch('api/1/ocr-board', {method: 'POST', body: fd})
+		.then(response => response.json());
 }
 
-function apiScanGrid() {
-	return fetch('api/1/ocr-grid', {
-		method: 'POST',
-		body: new FormData(gridFormEl)
-	})
-	.then(response => response.json());
+function apiScanGrid(blob) {
+	let fd = new FormData();
+	fd.set('size', '5x5');
+	fd.set('file', blob, blob.name || "file.jpg");
+	return fetch('api/1/ocr-grid', {method: 'POST', body: fd})
+		.then(response => response.json());
 }
 
 let width = 5, height = 5;
@@ -67,10 +102,8 @@ let boardEl = elm(contEl, 'div');
 let colorsEl = elm(contEl, 'div');
 let statusEl = elm(contEl, 'div', {id: "status"});
 let cluesEl = elm(contEl, 'div');
-let boardFormEl = document.getElementById("ocr-board-form");
-let boardFileEl = boardFormEl.file;
-let gridFormEl = document.getElementById("ocr-grid-form");
-let gridFileEl = gridFormEl.file;
+let wordsFileEl = document.getElementById("ocr-words-input");
+let gridFileEl = document.getElementById("ocr-grid-input");
 let colorsGridEl;
 let engineChoiceEl;
 
@@ -356,8 +389,11 @@ function giveClue(col) {
 	minClueIndex++;
 }
 
-function scanWords() {
-	apiScanWords().then(resp => {
+function scanWords(file) {
+	reduceFileSize(file, 500*1000, 2048, 2048, 0.8)
+		.then(apiScanWords)
+		.then(resp =>
+	{
 		if (height != 5 || width != 5) {
 			alert("Error: Only 5x5 grids can be scanned.");
 		} else if (resp.status == 0) {
@@ -377,8 +413,11 @@ function scanWords() {
 	});
 }
 
-function scanGrid() {
-	apiScanGrid().then(resp => {
+function scanGrid(file) {
+	reduceFileSize(file, 500*1000, 1024, 1024, 0.7)
+		.then(apiScanGrid)
+		.then(resp =>
+	{
 		if (height != 5 || width != 5) {
 			alert("Error: Only 5x5 grids can be scanned.");
 		} else if (resp.status == 0) {
@@ -434,7 +473,7 @@ txt(editOptionsEl, ' ');
 elm(editOptionsEl, 'input', {type: 'button', value: "Random words"}).onclick = randomWords;
 
 txt(editOptionsEl, ' ');
-elm(editOptionsEl, 'input', {type: 'button', value: "Scan words", id: 'scan-words-btn'}).onclick = () => boardFileEl.click();
+elm(editOptionsEl, 'input', {type: 'button', value: "Scan words", id: 'scan-words-btn'}).onclick = () => wordsFileEl.click();
 
 txt(editOptionsEl, ' ');
 elm(editOptionsEl, 'input', {type: 'button', value: "Start"}).onclick = uiStartPlaying;
@@ -475,7 +514,13 @@ document.addEventListener('keydown', function(ev) {
 	}
 }, true);
 
-boardFileEl.onchange = scanWords;
-gridFileEl.onchange = scanGrid;
+wordsFileEl.onchange = function() {
+	if (this.files && this.files[0])
+		scanWords(this.files[0]);
+};
+gridFileEl.onchange = function() {
+	if (this.files && this.files[0])
+		scanGrid(this.files[0]);
+};
 
 reset();

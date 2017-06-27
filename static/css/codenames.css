@@ -128,7 +128,7 @@ input[type=button], select {
 	color: blue;
 }
 
-#ocr-grid-form, #ocr-board-form {
+#ocr-grid-input, #ocr-words-input {
 	display: none;
 }
 
