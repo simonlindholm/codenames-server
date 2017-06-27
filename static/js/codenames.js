@@ -33,7 +33,7 @@ function apiClue(engine, color, cards, index) {
 }
 
 function apiScanWords() {
-	return fetch('/api/1/ocr-board', {
+	return fetch('api/1/ocr-board', {
 		method: 'POST',
 		body: new FormData(boardFormEl)
 	})
@@ -41,7 +41,7 @@ function apiScanWords() {
 }
 
 function apiScanGrid() {
-	return fetch('/api/1/ocr-grid', {
+	return fetch('api/1/ocr-grid', {
 		method: 'POST',
 		body: new FormData(gridFormEl)
 	})
