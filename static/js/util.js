@@ -56,7 +56,7 @@ function getExifOrientation(file) {
 	});
 }
 
-// Derived from https://stackoverflow.com/a/40867559/1359139, cc by-sa
+// Derived from https://stackoverflow.com/a/40867559, cc by-sa
 function imgToCanvasWithOrientation(img, rawWidth, rawHeight, orientation) {
 	let canvas = document.createElement('canvas');
 	if (orientation > 4) {
