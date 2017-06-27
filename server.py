@@ -75,7 +75,7 @@ def ocrBoard():
     if not 'file' in request.files:
         raise ApiError("Missing parameter file")
     file = request.files['file']
-    if not file.filename.endswith('.jpg') and not file.filename.endswith('.jpeg'):
+    if not file.filename.lower().endswith('.jpg') and not file.filename.lower().endswith('.jpeg'):
         raise ApiError("File must have a .jpg extension")
 
     tmpname = str(uuid.uuid4()) + '.jpg'
@@ -99,7 +99,7 @@ def ocrGrid():
     if not 'file' in request.files:
         raise ApiError("Missing parameter file")
     file = request.files['file']
-    if not file.filename.endswith('.jpg') and not file.filename.endswith('.jpeg'):
+    if not file.filename.lower().endswith('.jpg') and not file.filename.lower().endswith('.jpeg'):
         raise ApiError("File must have a .jpg extension")
 
     tmpname = str(uuid.uuid4()) + '.jpg'
