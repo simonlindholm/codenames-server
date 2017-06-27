@@ -366,7 +366,7 @@ function scanWords() {
 			let grid = resp.grid;
 			for (let i = 0; i < height; i++) {
 				for (let j = 0; j < width; j++)
-					setWord(i * width + j, grid[i][j], 'delay-restrict');
+					setWord(i * width + j, grid[i][j].toLowerCase(), 'delay-restrict');
 			}
 			restrictEngines();
 		} else {
