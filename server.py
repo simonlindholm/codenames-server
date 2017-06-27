@@ -6,6 +6,7 @@ import json
 import uuid
 import recognizer.board
 from recognizer.board import find_words
+from recognizer.grid import find_grid
 
 UPLOAD_FOLDER = '/tmp/codenames-upload'
 if not os.path.isdir(UPLOAD_FOLDER):
@@ -67,11 +68,10 @@ def clueAPI():
     return resp
 
 @app.route("/api/1/ocr-board", methods=['POST'])
-def ocrAPI():
+def ocrBoard():
     size = arg('size')
     if size != '5x5':
         raise ApiError("Only size 5x5 supported right now")
-    print(request.files)
     if not 'file' in request.files:
         raise ApiError("Missing parameter file")
     file = request.files['file']
@@ -82,9 +82,39 @@ def ocrAPI():
     fname = os.path.join(app.config['UPLOAD_FOLDER'], tmpname)
     file.save(fname)
 
-    words, grid = recognizer.board.find_words(fname, removeFile=True)
+    words, grid = recognizer.board.find_words(fname)
+
+    # (In case of exceptions, don't remove the file)
+    os.remove(fname)
 
     resp = jsonify({'status': 1, 'message': "Success.", 'grid': grid})
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
+
+@app.route("/api/1/ocr-grid", methods=['POST'])
+def ocrGrid():
+    size = arg('size')
+    if size != '5x5':
+        raise ApiError("Only size 5x5 supported right now")
+    if not 'file' in request.files:
+        raise ApiError("Missing parameter file")
+    file = request.files['file']
+    if not file.filename.endswith('.jpg') and not file.filename.endswith('.jpeg'):
+        raise ApiError("File must have a .jpg extension")
+
+    tmpname = str(uuid.uuid4()) + '.jpg'
+    fname = os.path.join(app.config['UPLOAD_FOLDER'], tmpname)
+    file.save(fname)
+
+    grid = recognizer.grid.find_grid(fname)
+
+    # (In case of exceptions, don't remove the file)
+    os.remove(fname)
+
+    if grid is None:
+        resp = jsonify({'status': 2, 'message': "No grid found!"})
+    else:
+        resp = jsonify({'status': 1, 'message': "Success.", 'grid': grid})
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
