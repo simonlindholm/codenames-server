@@ -5,8 +5,7 @@ import os
 import json
 import uuid
 import recognizer.board
-from recognizer.board import find_words
-from recognizer.grid import find_grid
+import recognizer.grid
 
 UPLOAD_FOLDER = '/tmp/codenames-upload'
 if not os.path.isdir(UPLOAD_FOLDER):
