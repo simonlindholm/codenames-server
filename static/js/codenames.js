@@ -21,7 +21,6 @@ function clearelm(el) {
 }
 
 function reduceFileSize(file, acceptFileSize, maxWidth, maxHeight, quality) {
-	if (HTMLCanvasElement.prototype.toBlob.polyfilled) acceptFileSize *= 2;
 	if (file.size <= acceptFileSize) {
 		return Promise.resolve(file);
 	}
@@ -387,7 +386,7 @@ function giveClue(col) {
 }
 
 function scanWords(file) {
-	reduceFileSize(file, 500*1000, 2048, 2048, 0.8)
+	reduceFileSize(file, 500*1000, 2048, 2048, 0.9)
 		.then(apiScanWords)
 		.then(resp =>
 	{

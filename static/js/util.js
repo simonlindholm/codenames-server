@@ -14,7 +14,6 @@ if (!HTMLCanvasElement.prototype.toBlob) {
 			callback( new Blob( [arr], {type: type || 'image/png'} ) );
 		}
 	});
-	HTMLCanvasElement.prototype.toBlob.polyfilled = true;
 }
 
 // Modified from https://stackoverflow.com/a/32490603, cc by-sa 3.0
@@ -65,6 +64,10 @@ function imgToCanvasWithOrientation(img, rawWidth, rawHeight, orientation) {
 	} else {
 		canvas.width = rawWidth;
 		canvas.height = rawHeight;
+	}
+
+	if (orientation > 1) {
+		console.log("EXIF orientation = " + orientation + ", rotating picture");
 	}
 
 	var ctx = canvas.getContext('2d');
