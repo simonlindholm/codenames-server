@@ -41,13 +41,16 @@ def arg(id, default=None, type=None):
         raise ApiError("Missing parameter " + str(id))
     return request.values.get(id, default=default, type=type)
 
+def split_words(s):
+    return list(filter(lambda x: x != "", s.replace(' ', '_').split(',')))
+
 @app.route("/api/1/clue")
 def clueAPI():
     engine = arg('engine')
     color = arg('color')
     colors = arg('colors')
-    words = arg('words').replace(' ', '_').split(',')
-    hintedWords = arg('hinted_words').replace(' ', '_').split(',')
+    words = split_words(arg('words'))
+    hintedWords = split_words(arg('hinted_words'))
     index = arg('index', -1, int)
     count = arg('count', -1, int)
     if len(colors) != len(words):
@@ -57,7 +60,8 @@ def clueAPI():
 
     inp = engine + ' ' + color + '\n'
     inp += '\n'.join(c + ' ' + w for (c, w) in zip(colors, words)) + '\n'
-    inp += '\n'.join('hinted ' + w for w in hintedWords) + '\n'
+    for w in hintedWords:
+        inp += 'hinted ' + w + '\n'
     inp += 'go ' + str(index) + ' ' + str(count) + '\n'
 
     proc = Popen(['./codenames', '--batch'], stdin=PIPE, stdout=PIPE, cwd='./bot')
