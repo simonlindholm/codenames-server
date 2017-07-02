@@ -58,6 +58,7 @@ function apiClue(engine, color, cards, index) {
 			"&color=" + color +
 			"&colors=" + colors.join('') +
 			"&words=" + encodeURIComponent(words.join(',')) +
+			"&hinted_words=" +
 			"&index=" + index +
 			"&count=1")
 		.then(response => response.json());
