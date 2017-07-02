@@ -47,6 +47,7 @@ def clueAPI():
     color = arg('color')
     colors = arg('colors')
     words = arg('words').replace(' ', '_').split(',')
+    hintedWords = arg('hinted_words').replace(' ', '_').split(',')
     index = arg('index', -1, int)
     count = arg('count', -1, int)
     if len(colors) != len(words):
@@ -56,6 +57,7 @@ def clueAPI():
 
     inp = engine + ' ' + color + '\n'
     inp += '\n'.join(c + ' ' + w for (c, w) in zip(colors, words)) + '\n'
+    inp += '\n'.join('hinted ' + w for w in hintedWords) + '\n'
     inp += 'go ' + str(index) + ' ' + str(count) + '\n'
 
     proc = Popen(['./codenames', '--batch'], stdin=PIPE, stdout=PIPE, cwd='./bot')
@@ -126,4 +128,4 @@ def main():
     return send_file('static/index.html')
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=10000)
+    app.run(host='localhost', port=10000)
