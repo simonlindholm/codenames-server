@@ -51,6 +51,7 @@ def clueAPI():
     colors = arg('colors')
     words = split_words(arg('words'))
     hintedWords = split_words(arg('hinted_words'))
+    oldClues = split_words(arg('old_clues'))
     index = arg('index', -1, int)
     count = arg('count', -1, int)
     if len(colors) != len(words):
@@ -62,6 +63,8 @@ def clueAPI():
     inp += '\n'.join(c + ' ' + w for (c, w) in zip(colors, words)) + '\n'
     for w in hintedWords:
         inp += 'hinted ' + w + '\n'
+    for w in oldClues:
+        inp += 'clue ' + w + '\n'
     inp += 'go ' + str(index) + ' ' + str(count) + '\n'
 
     proc = Popen(['./codenames', '--batch'], stdin=PIPE, stdout=PIPE, cwd='./bot')
