@@ -94,6 +94,7 @@ let seenClues = new Set();
 let ownEngineChoice = 0;
 let playing = false;
 let starter = '';
+let language = 'eng';
 
 let contEl = document.getElementById('cont');
 let optionsEl = elm(contEl, 'div');
@@ -319,6 +320,7 @@ function setWord(pos, w, context) {
 }
 
 function randomWords() {
+	let wordlist = wordlists[language];
 	shuffle(wordlist);
 	let words = wordlist.slice(0, height*width);
 	for (let i = 0; i < width*height; i++) {
@@ -395,7 +397,6 @@ function giveClue(col, clueIndex = 0) {
 }
 
 function scanWords(file) {
-	let language = 'eng';
 	reduceFileSize(file, 500*1000, 2048, 2048, 0.9)
 		.then(blob => apiScanWords(blob, language))
 		.then(resp =>
