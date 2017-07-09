@@ -51,14 +51,15 @@ function reduceFileSize(file, acceptFileSize, maxWidth, maxHeight, quality) {
 	});
 }
 
-function apiClue(engine, color, cards, index) {
+function apiClue(engine, color, cards, index, oldClues, hintedWords) {
 	let colors = cards.map(x => x.color);
 	let words = cards.map(x => x.word);
 	return fetch("api/1/clue?engine=" + engine +
 			"&color=" + color +
 			"&colors=" + colors.join('') +
 			"&words=" + encodeURIComponent(words.join(',')) +
-			"&hinted_words=" +
+			"&old_clues=" + encodeURIComponent(oldClues.join(',')) +
+			"&hinted_words=" + encodeURIComponent(hintedWords.join(',')) +
 			"&index=" + index +
 			"&count=1")
 		.then(response => response.json());
@@ -82,12 +83,12 @@ function apiScanGrid(blob) {
 
 let width = 5, height = 5;
 let cards = [];
+let previousClues = [];
+let previousHintedWords = new Set();
 let gridShown = true;
 let counts = [0,0,0,0];
 let engine = 'glove';
 let pickedCol = 'r';
-let lastClueStr = "";
-let minClueIndex = 0;
 let seenClues = new Set();
 let ownEngineChoice = 0;
 let playing = false;
@@ -127,6 +128,8 @@ function reset() {
 	let wordTable = elm(boardEl, 'table', {id: "words"});
 	starter = '';
 
+	previousClues = [];
+	previousHintedWords = new Set();
 	cards = [];
 	for (let i = 0; i < height; i++) {
 		let gridRow = gridTable.insertRow(-1);
@@ -343,7 +346,7 @@ function showClue(col, clue) {
 	alert(clue.word + " " + clue.count);
 }
 
-function giveClue(col) {
+function giveClue(col, clueIndex = 0) {
 	let cas = [];
 	let c = {r: 0, b: 0, c: 0, a: 0};
 	for (let ca of cards) {
@@ -359,21 +362,26 @@ function giveClue(col) {
 		return;
 	}
 
-	let clueStr = JSON.stringify({cas, engine, col});
-	if (clueStr != lastClueStr) {
-		minClueIndex = 0;
-		lastClueStr = clueStr;
-	}
-
-	apiClue(engine, col, cas, minClueIndex).then(resp => {
+	let oldClues = previousClues.filter(w => w.color == col).map(w => w.word);
+	let hintedWords = cards.filter(c => previousHintedWords.has(c.word) && c.color == col)
+		.map(c => c.word);
+	apiClue(engine, col, cas, clueIndex, oldClues, hintedWords).then(resp => {
 		if (resp.status == 0) {
 			alert("Internal error: " + resp.message);
 		} else if (resp.status == 1) {
 			let clue = resp.result[0];
 			if (seenClues.has(clue.word)) {
 				console.log("Already seen this clue, giving another...");
-				giveClue(col);
+				giveClue(col, clueIndex + 1);
 			} else {
+				previousClues.push({word: clue.word, color: col});
+				let count = 0;
+				for (let w of clue.why) {
+					if (count < clue.count && w.type === col) {
+						count++;
+						previousHintedWords.add(w.word);
+					}
+				}
 				seenClues.add(clue.word);
 				showClue(col, clue);
 			}
@@ -383,7 +391,6 @@ function giveClue(col) {
 	}).catch(err => {
 		alert("Error: " + err);
 	});
-	minClueIndex++;
 }
 
 function scanWords(file) {
@@ -491,9 +498,9 @@ engineChoiceEl.onchange = function() {
 };
 
 txt(playOptionsEl, ' ');
-elm(playOptionsEl, 'input', {type: 'button', value: "Red clue"}).onclick = giveClue.bind(null, 'r');
+elm(playOptionsEl, 'input', {type: 'button', value: "Red clue"}).onclick = () => giveClue('r');
 txt(playOptionsEl, ' ');
-elm(playOptionsEl, 'input', {type: 'button', value: "Blue clue"}).onclick = giveClue.bind(null, 'b');
+elm(playOptionsEl, 'input', {type: 'button', value: "Blue clue"}).onclick = () => giveClue('b');
 
 document.addEventListener('keydown', function(ev) {
 	if (ev.keyCode == 13) {
