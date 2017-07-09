@@ -78,8 +78,11 @@ def clueAPI():
 @app.route("/api/1/ocr-board", methods=['POST'])
 def ocrBoard():
     size = arg('size')
+    lang = arg('lang')
     if size != '5x5':
         raise ApiError("Only size 5x5 supported right now")
+    if lang not in ['eng', 'swe']:
+        raise ApiError("Only English and Swedish supported right now")
     if not 'file' in request.files:
         raise ApiError("Missing parameter file")
     file = request.files['file']
@@ -90,7 +93,7 @@ def ocrBoard():
     fname = os.path.join(app.config['UPLOAD_FOLDER'], tmpname)
     file.save(fname)
 
-    words, grid = recognizer.board.find_words(fname)
+    words, grid = recognizer.board.find_words(fname, lang)
 
     # (In case of exceptions, don't remove the file)
     os.remove(fname)

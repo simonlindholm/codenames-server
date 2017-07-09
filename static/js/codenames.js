@@ -65,9 +65,10 @@ function apiClue(engine, color, cards, index, oldClues, hintedWords) {
 		.then(response => response.json());
 }
 
-function apiScanWords(blob) {
+function apiScanWords(blob, language) {
 	let fd = new FormData();
 	fd.set('size', '5x5');
+	fd.set('lang', language);
 	fd.set('file', blob, blob.name || "file.jpg");
 	return fetch('api/1/ocr-board', {method: 'POST', body: fd})
 		.then(response => response.json());
@@ -394,8 +395,9 @@ function giveClue(col, clueIndex = 0) {
 }
 
 function scanWords(file) {
+	let language = 'eng';
 	reduceFileSize(file, 500*1000, 2048, 2048, 0.9)
-		.then(apiScanWords)
+		.then(blob => apiScanWords(blob, language))
 		.then(resp =>
 	{
 		if (height != 5 || width != 5) {
