@@ -290,6 +290,14 @@ function randomGrid() {
 }
 
 function restrictEngines() {
+	if (language == 'swe') {
+		engineChoiceEl.disabled = true;
+		engineChoiceEl.title = "Forced conceptnet engine due to Swedish language.";
+		engineChoiceEl.selectedIndex = 1;
+		engine = 'conceptnet-swe';
+		return;
+	}
+
 	let forceConceptNet = false;
 	for (let c of cards) {
 		if (!c.done && c.word.includes(" "))
@@ -530,5 +538,9 @@ gridFileEl.onchange = function() {
 	if (this.files && this.files[0])
 		scanGrid(this.files[0]);
 };
+
+if (location.href.indexOf("lang=swe") !== -1) {
+	language = 'swe';
+}
 
 reset();
