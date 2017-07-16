@@ -59,6 +59,8 @@ def clueAPI():
         raise ApiError("colors and words have different lengths")
     if color not in "rb" or any(col not in "rbca" for col in colors):
         raise ApiError("invalid colors")
+    if difficulty not in ["easy", "medium", "hard"]:
+        raise ApiError("invalid difficulty")
 
     inp = engine + ' ' + color + '\n'
     inp += '\n'.join(c + ' ' + w for (c, w) in zip(colors, words)) + '\n'
