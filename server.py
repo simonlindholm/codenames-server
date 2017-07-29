@@ -49,6 +49,7 @@ def clueAPI():
     engine = arg('engine')
     color = arg('color')
     colors = arg('colors')
+    inappropriate = arg('inappropriate')
     words = split_words(arg('words'))
     hintedWords = split_words(arg('hinted_words'))
     oldClues = split_words(arg('old_clues'))
@@ -69,6 +70,7 @@ def clueAPI():
     for w in oldClues:
         inp += 'clue ' + w + '\n'
     inp += 'difficulty ' + str(difficulty) + '\n'
+    inp += 'inappropriate ' + str(inappropriate) + '\n'
     inp += 'go ' + str(index) + ' ' + str(count) + '\n'
 
     proc = Popen(['./codenames', '--batch'], stdin=PIPE, stdout=PIPE, cwd='./bot')
