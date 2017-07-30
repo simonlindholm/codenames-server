@@ -62,6 +62,8 @@ def clueAPI():
         raise ApiError("invalid colors")
     if difficulty not in ["easy", "medium", "hard"]:
         raise ApiError("invalid difficulty")
+    if inappropriate not in ["block", "allow", "boost"]:
+        raise ApiError("inappropriate inappropriateness")
 
     inp = engine + ' ' + color + '\n'
     inp += '\n'.join(c + ' ' + w for (c, w) in zip(colors, words)) + '\n'
