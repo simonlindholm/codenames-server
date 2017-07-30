@@ -4,13 +4,24 @@ from subprocess import Popen, PIPE
 import os
 import json
 import uuid
+import shutil
 import recognizer.board
 import recognizer.grid
 
 UPLOAD_FOLDER = '/tmp/codenames-upload'
+PASSWORD = os.environ.get('PASSWORD')
+last_ocr_board_filename = UPLOAD_FOLDER + '/last-ocr-board.jpg'
+last_ocr_grid_filename = UPLOAD_FOLDER + '/last-ocr-grid.jpg'
+
 if not os.path.isdir(UPLOAD_FOLDER):
     os.mkdir(UPLOAD_FOLDER)
     os.chmod(UPLOAD_FOLDER, 0o777)
+
+if not os.path.isfile(last_ocr_board_filename):
+    open(last_ocr_board_filename, 'w').close()
+    open(last_ocr_grid_filename, 'w').close()
+    os.chmod(last_ocr_board_filename, 0o777)
+    os.chmod(last_ocr_grid_filename, 0o777)
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -100,6 +111,8 @@ def ocrBoard():
     tmpname = str(uuid.uuid4()) + '.jpg'
     fname = os.path.join(app.config['UPLOAD_FOLDER'], tmpname)
     file.save(fname)
+    shutil.copy(fname, last_ocr_board_filename)
+    os.chmod(last_ocr_board_filename, 0o777)
 
     words, grid = recognizer.board.find_words(fname, lang)
 
@@ -124,6 +137,8 @@ def ocrGrid():
     tmpname = str(uuid.uuid4()) + '.jpg'
     fname = os.path.join(app.config['UPLOAD_FOLDER'], tmpname)
     file.save(fname)
+    shutil.copy(fname, last_ocr_grid_filename)
+    os.chmod(last_ocr_grid_filename, 0o777)
 
     grid = recognizer.grid.find_grid(fname)
 
@@ -136,6 +151,18 @@ def ocrGrid():
         resp = jsonify({'status': 1, 'message': "Success.", 'grid': grid})
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
+
+@app.route("/last-board.jpg")
+def lastOcrBoard():
+    if request.values.get('pw', default='') != PASSWORD:
+        return '', 401
+    return send_file(last_ocr_board_filename)
+
+@app.route("/last-grid.jpg")
+def lastOcrGrid():
+    if request.values.get('pw', default='') != PASSWORD:
+        return '', 401
+    return send_file(last_ocr_grid_filename)
 
 @app.route("/<path:path>")
 def statics(path):
